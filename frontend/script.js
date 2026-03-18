@@ -19,10 +19,16 @@ window.history.replaceState({}, document.title, "/frontend/index.html")
 
 updateUI()
 
-// 🔥 attach button events AFTER load
 document.getElementById("loginBtn").addEventListener("click", login)
 document.getElementById("logoutBtn").addEventListener("click", logout)
 document.getElementById("sendBtn").addEventListener("click", sendMessage)
+
+// Enter key support 🔥
+document.getElementById("msg").addEventListener("keypress", function(e){
+if(e.key === "Enter"){
+sendMessage()
+}
+})
 }
 
 async function login(){
@@ -42,7 +48,7 @@ const isAuthenticated = await auth0Client.isAuthenticated()
 
 if(isAuthenticated){
 const user = await auth0Client.getUser()
-document.getElementById("user").innerText = "Welcome " + user.name
+document.getElementById("user").innerText = "👋 " + user.name
 document.getElementById("loginBtn").style.display = "none"
 document.getElementById("logoutBtn").style.display = "inline"
 }else{
@@ -52,18 +58,37 @@ document.getElementById("logoutBtn").style.display = "none"
 }
 }
 
-async function sendMessage(){
-const msg = document.getElementById("msg").value
+// 🔥 Add messages to chat
+function addMessage(text, type){
+const chatBox = document.getElementById("chatBox")
 
-document.getElementById("response").innerText = "Thinking..."
+const msgDiv = document.createElement("div")
+msgDiv.classList.add("message", type)
+msgDiv.innerText = text
+
+chatBox.appendChild(msgDiv)
+
+// auto scroll
+chatBox.scrollTop = chatBox.scrollHeight
+}
+
+async function sendMessage(){
+const input = document.getElementById("msg")
+const msg = input.value.trim()
+
+if(msg === "") return
+
+addMessage(msg, "user")
+input.value = ""
+
+addMessage("Thinking...", "bot")
 
 try {
 
 const isAuthenticated = await auth0Client.isAuthenticated()
 
 if (!isAuthenticated){
-document.getElementById("response").innerText = "Please login first"
-return
+return addMessage("Please login first", "bot")
 }
 
 const token = await auth0Client.getTokenSilently()
@@ -79,11 +104,14 @@ body: JSON.stringify({ message: msg })
 
 const data = await res.json()
 
-document.getElementById("response").innerText = data.reply
+// remove "Thinking..."
+document.getElementById("chatBox").lastChild.remove()
+
+addMessage(data.reply, "bot")
 
 } catch (err) {
 console.log(err)
-document.getElementById("response").innerText = "Error connecting"
+addMessage("Error connecting to server", "bot")
 }
 }
 
