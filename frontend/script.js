@@ -23,12 +23,15 @@ document.getElementById("loginBtn").addEventListener("click", login)
 document.getElementById("logoutBtn").addEventListener("click", logout)
 document.getElementById("sendBtn").addEventListener("click", sendMessage)
 
-// Enter key support 🔥
+// Enter key support
 document.getElementById("msg").addEventListener("keypress", function(e){
 if(e.key === "Enter"){
 sendMessage()
 }
 })
+
+// auto focus
+document.getElementById("msg").focus()
 }
 
 async function login(){
@@ -51,6 +54,12 @@ const user = await auth0Client.getUser()
 document.getElementById("user").innerText = "👋 " + user.name
 document.getElementById("loginBtn").style.display = "none"
 document.getElementById("logoutBtn").style.display = "inline"
+
+// welcome message
+if(document.getElementById("chatBox").children.length === 0){
+addMessage("Hi! I am your AI Study Assistant. Ask me anything 📚", "bot")
+}
+
 }else{
 document.getElementById("user").innerText = "Not logged in"
 document.getElementById("loginBtn").style.display = "inline"
@@ -58,7 +67,7 @@ document.getElementById("logoutBtn").style.display = "none"
 }
 }
 
-// 🔥 Add messages to chat
+// normal message
 function addMessage(text, type){
 const chatBox = document.getElementById("chatBox")
 
@@ -67,9 +76,34 @@ msgDiv.classList.add("message", type)
 msgDiv.innerText = text
 
 chatBox.appendChild(msgDiv)
-
-// auto scroll
 chatBox.scrollTop = chatBox.scrollHeight
+}
+
+// typing effect
+function typeEffect(text, type){
+const chatBox = document.getElementById("chatBox")
+
+const msgDiv = document.createElement("div")
+msgDiv.classList.add("message", type)
+chatBox.appendChild(msgDiv)
+
+let i = 0
+
+function typing(){
+if(i < text.length){
+msgDiv.innerText += text.charAt(i)
+i++
+setTimeout(typing, 15)
+}
+}
+
+typing()
+chatBox.scrollTop = chatBox.scrollHeight
+}
+
+// clear chat
+function clearChat(){
+document.getElementById("chatBox").innerHTML = ""
 }
 
 async function sendMessage(){
@@ -81,13 +115,18 @@ if(msg === "") return
 addMessage(msg, "user")
 input.value = ""
 
-addMessage("Thinking...", "bot")
+// loading message
+const loading = document.createElement("div")
+loading.classList.add("message", "bot")
+loading.innerText = "🤖 AI is typing..."
+document.getElementById("chatBox").appendChild(loading)
 
 try {
 
 const isAuthenticated = await auth0Client.isAuthenticated()
 
 if (!isAuthenticated){
+loading.remove()
 return addMessage("Please login first", "bot")
 }
 
@@ -104,13 +143,14 @@ body: JSON.stringify({ message: msg })
 
 const data = await res.json()
 
-// remove "Thinking..."
-document.getElementById("chatBox").lastChild.remove()
+// remove loading
+loading.remove()
 
-addMessage(data.reply, "bot")
+typeEffect(data.reply, "bot")
 
 } catch (err) {
 console.log(err)
+loading.remove()
 addMessage("Error connecting to server", "bot")
 }
 }
