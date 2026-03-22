@@ -1,158 +1,166 @@
 let auth0Client = null
 
-async function initAuth(){
+async function initAuth() {
+  auth0Client = await auth0.createAuth0Client({
+    domain: "dev-r08vuzglvar1lrtz.us.auth0.com",
+    clientId: "kJhgq4jxMuXfZ2RxXFyT7gJUUDqY1gPd",
+    authorizationParams: {
+      redirect_uri: "http://127.0.0.1:5500/frontend/index.html"
+    }
+  })
 
-auth0Client = await auth0.createAuth0Client({
-domain: "dev-r08vuzglvar1lrtz.us.auth0.com",
-clientId: "kJhgq4jxMuXfZ2RxXFyT7gJUUDqY1gPd",
-authorizationParams:{
-redirect_uri: "http://127.0.0.1:5500/frontend/index.html"
-}
-})
+  const query = window.location.search
+  if (query.includes("code=") && query.includes("state=")) {
+    await auth0Client.handleRedirectCallback()
+    window.history.replaceState({}, document.title, "/frontend/index.html")
+  }
 
-const query = window.location.search
+  updateUI()
 
-if(query.includes("code=") && query.includes("state=")){
-await auth0Client.handleRedirectCallback()
-window.history.replaceState({}, document.title, "/frontend/index.html")
-}
+  document.getElementById("loginBtn").addEventListener("click", login)
+  document.getElementById("logoutBtn").addEventListener("click", logout)
+  document.getElementById("sendBtn").addEventListener("click", sendMessage)
 
-updateUI()
+  document.getElementById("msg").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") sendMessage()
+  })
 
-document.getElementById("loginBtn").addEventListener("click", login)
-document.getElementById("logoutBtn").addEventListener("click", logout)
-document.getElementById("sendBtn").addEventListener("click", sendMessage)
-
-// Enter key support
-document.getElementById("msg").addEventListener("keypress", function(e){
-if(e.key === "Enter"){
-sendMessage()
-}
-})
-
-// auto focus
-document.getElementById("msg").focus()
+  document.getElementById("msg").focus()
 }
 
-async function login(){
-await auth0Client.loginWithRedirect()
+async function login() {
+  await auth0Client.loginWithRedirect()
 }
 
-async function logout(){
-auth0Client.logout({
-logoutParams:{
-returnTo: "http://127.0.0.1:5500/frontend/index.html"
-}
-})
-}
-
-async function updateUI(){
-const isAuthenticated = await auth0Client.isAuthenticated()
-
-if(isAuthenticated){
-const user = await auth0Client.getUser()
-document.getElementById("user").innerText = "👋 " + user.name
-document.getElementById("loginBtn").style.display = "none"
-document.getElementById("logoutBtn").style.display = "inline"
-
-// welcome message
-if(document.getElementById("chatBox").children.length === 0){
-addMessage("Hi! I am your AI Study Assistant. Ask me anything 📚", "bot")
+async function logout() {
+  auth0Client.logout({
+    logoutParams: {
+      returnTo: "http://127.0.0.1:5500/frontend/index.html"
+    }
+  })
 }
 
-}else{
-document.getElementById("user").innerText = "Not logged in"
-document.getElementById("loginBtn").style.display = "inline"
-document.getElementById("logoutBtn").style.display = "none"
-}
-}
+async function updateUI() {
+  const isAuthenticated = await auth0Client.isAuthenticated()
 
-// normal message
-function addMessage(text, type){
-const chatBox = document.getElementById("chatBox")
+  if (isAuthenticated) {
+    const user = await auth0Client.getUser()
+    document.getElementById("user").innerText = "👋 " + user.name
+    document.getElementById("loginBtn").style.display = "none"
+    document.getElementById("logoutBtn").style.display = "inline"
 
-const msgDiv = document.createElement("div")
-msgDiv.classList.add("message", type)
-msgDiv.innerText = text
-
-chatBox.appendChild(msgDiv)
-chatBox.scrollTop = chatBox.scrollHeight
-}
-
-// typing effect
-function typeEffect(text, type){
-const chatBox = document.getElementById("chatBox")
-
-const msgDiv = document.createElement("div")
-msgDiv.classList.add("message", type)
-chatBox.appendChild(msgDiv)
-
-let i = 0
-
-function typing(){
-if(i < text.length){
-msgDiv.innerText += text.charAt(i)
-i++
-setTimeout(typing, 15)
-}
+    if (document.getElementById("chatBox").children.length === 0) {
+      addMessage("Hi! I'm your AI Study Assistant powered by Llama 3.3 70B. Ask me anything 📚", "bot")
+    }
+  } else {
+    document.getElementById("user").innerText = "Not logged in"
+    document.getElementById("loginBtn").style.display = "inline"
+    document.getElementById("logoutBtn").style.display = "none"
+  }
 }
 
-typing()
-chatBox.scrollTop = chatBox.scrollHeight
+// ── Add a message bubble ──────────────────────────────────────────────────────
+function addMessage(text, type) {
+  const chatBox = document.getElementById("chatBox")
+
+  const msgDiv = document.createElement("div")
+  msgDiv.classList.add("message", type)
+  msgDiv.innerText = text
+
+  chatBox.appendChild(msgDiv)
+  chatBox.scrollTop = chatBox.scrollHeight
 }
 
-// clear chat
-function clearChat(){
-document.getElementById("chatBox").innerHTML = ""
+// ── Typing effect ─────────────────────────────────────────────────────────────
+function typeEffect(text, type) {
+  const chatBox = document.getElementById("chatBox")
+
+  const msgDiv = document.createElement("div")
+  msgDiv.classList.add("message", type)
+  chatBox.appendChild(msgDiv)
+
+  let i = 0
+  function typing() {
+    if (i < text.length) {
+      msgDiv.innerText += text.charAt(i)
+      i++
+      chatBox.scrollTop = chatBox.scrollHeight
+      setTimeout(typing, 12)
+    }
+  }
+  typing()
 }
 
-async function sendMessage(){
-const input = document.getElementById("msg")
-const msg = input.value.trim()
+// ── Clear chat (also clears server-side memory) ───────────────────────────────
+async function clearChat() {
+  document.getElementById("chatBox").innerHTML = ""
 
-if(msg === "") return
-
-addMessage(msg, "user")
-input.value = ""
-
-// loading message
-const loading = document.createElement("div")
-loading.classList.add("message", "bot")
-loading.innerText = "🤖 AI is typing..."
-document.getElementById("chatBox").appendChild(loading)
-
-try {
-
-const isAuthenticated = await auth0Client.isAuthenticated()
-
-if (!isAuthenticated){
-loading.remove()
-return addMessage("Please login first", "bot")
+  try {
+    const isAuthenticated = await auth0Client.isAuthenticated()
+    if (isAuthenticated) {
+      const token = await auth0Client.getTokenSilently()
+      await fetch("http://127.0.0.1:3000/clear", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        }
+      })
+    }
+  } catch (err) {
+    console.log("Could not clear server memory:", err)
+  }
 }
 
-const token = await auth0Client.getTokenSilently()
+// ── Send message ──────────────────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById("msg")
+  const msg = input.value.trim()
+  if (msg === "") return
 
-const res = await fetch("http://127.0.0.1:3000/chat", {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-"Authorization": "Bearer " + token
-},
-body: JSON.stringify({ message: msg })
-})
+  addMessage(msg, "user")
+  input.value = ""
 
-const data = await res.json()
+  // Loading indicator
+  const loading = document.createElement("div")
+  loading.classList.add("message", "bot")
+  loading.innerText = "🤖 AI is thinking..."
+  document.getElementById("chatBox").appendChild(loading)
+  document.getElementById("chatBox").scrollTop = document.getElementById("chatBox").scrollHeight
 
-// remove loading
-loading.remove()
+  try {
+    const isAuthenticated = await auth0Client.isAuthenticated()
 
-typeEffect(data.reply, "bot")
+    if (!isAuthenticated) {
+      loading.remove()
+      return addMessage("Please login first to use the AI assistant.", "bot")
+    }
 
-} catch (err) {
-console.log(err)
-loading.remove()
-addMessage("Error connecting to server", "bot")
-}
+    const token = await auth0Client.getTokenSilently()
+
+    const res = await fetch("http://127.0.0.1:3000/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ message: msg })
+    })
+
+    const data = await res.json()
+    loading.remove()
+
+    if (data.reply) {
+      typeEffect(data.reply, "bot")
+    } else {
+      addMessage("❌ No response from AI. Try again.", "bot")
+    }
+
+  } catch (err) {
+    console.error(err)
+    loading.remove()
+    addMessage("❌ Error connecting to server. Make sure your server is running.", "bot")
+  }
 }
 
 initAuth()
