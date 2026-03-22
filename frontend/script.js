@@ -5,7 +5,7 @@ async function initAuth() {
     domain: "dev-r08vuzglvar1lrtz.us.auth0.com",
     clientId: "kJhgq4jxMuXfZ2RxXFyT7gJUUDqY1gPd",
     authorizationParams: {
-      redirect_uri: "http://127.0.0.1:5500/frontend/index.html"
+      redirect_uri: window.location.origin + "/frontend/index.html"
     }
   })
 
@@ -35,7 +35,7 @@ async function login() {
 async function logout() {
   auth0Client.logout({
     logoutParams: {
-      returnTo: "http://127.0.0.1:5500/frontend/index.html"
+      returnTo: window.location.origin + "/frontend/index.html"
     }
   })
 }
@@ -59,22 +59,17 @@ async function updateUI() {
   }
 }
 
-// ── Add a message bubble ──────────────────────────────────────────────────────
 function addMessage(text, type) {
   const chatBox = document.getElementById("chatBox")
-
   const msgDiv = document.createElement("div")
   msgDiv.classList.add("message", type)
   msgDiv.innerText = text
-
   chatBox.appendChild(msgDiv)
   chatBox.scrollTop = chatBox.scrollHeight
 }
 
-// ── Typing effect ─────────────────────────────────────────────────────────────
 function typeEffect(text, type) {
   const chatBox = document.getElementById("chatBox")
-
   const msgDiv = document.createElement("div")
   msgDiv.classList.add("message", type)
   chatBox.appendChild(msgDiv)
@@ -91,7 +86,6 @@ function typeEffect(text, type) {
   typing()
 }
 
-// ── Clear chat (also clears server-side memory) ───────────────────────────────
 async function clearChat() {
   document.getElementById("chatBox").innerHTML = ""
 
@@ -99,7 +93,7 @@ async function clearChat() {
     const isAuthenticated = await auth0Client.isAuthenticated()
     if (isAuthenticated) {
       const token = await auth0Client.getTokenSilently()
-      await fetch("http://127.0.0.1:3000/clear", {
+      await fetch("https://ai-study-agent-hmok.onrender.com/clear", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,7 +106,6 @@ async function clearChat() {
   }
 }
 
-// ── Send message ──────────────────────────────────────────────────────────────
 async function sendMessage() {
   const input = document.getElementById("msg")
   const msg = input.value.trim()
@@ -121,7 +114,6 @@ async function sendMessage() {
   addMessage(msg, "user")
   input.value = ""
 
-  // Loading indicator
   const loading = document.createElement("div")
   loading.classList.add("message", "bot")
   loading.innerText = "🤖 AI is thinking..."
@@ -138,7 +130,7 @@ async function sendMessage() {
 
     const token = await auth0Client.getTokenSilently()
 
-    const res = await fetch("http://127.0.0.1:3000/chat", {
+    const res = await fetch("https://ai-study-agent-hmok.onrender.com/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -159,7 +151,7 @@ async function sendMessage() {
   } catch (err) {
     console.error(err)
     loading.remove()
-    addMessage("❌ Error connecting to server. Make sure your server is running.", "bot")
+    addMessage("❌ Error connecting to server. Please try again.", "bot")
   }
 }
 
