@@ -5,14 +5,14 @@ async function initAuth() {
     domain: "dev-r08vuzglvar1lrtz.us.auth0.com",
     clientId: "kJhgq4jxMuXfZ2RxXFyT7gJUUDqY1gPd",
     authorizationParams: {
-      redirect_uri: window.location.origin + "/frontend/index.html"
+      redirect_uri: window.location.origin + "/index.html"
     }
   })
 
   const query = window.location.search
   if (query.includes("code=") && query.includes("state=")) {
     await auth0Client.handleRedirectCallback()
-    window.history.replaceState({}, document.title, "/frontend/index.html")
+    window.history.replaceState({}, document.title, "/index.html")
   }
 
   updateUI()
@@ -35,7 +35,7 @@ async function login() {
 async function logout() {
   auth0Client.logout({
     logoutParams: {
-      returnTo: window.location.origin + "/frontend/index.html"
+      returnTo: window.location.origin + "/index.html"
     }
   })
 }
