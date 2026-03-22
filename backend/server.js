@@ -4,12 +4,35 @@ const axios = require("axios")
 require("dotenv").config()
 
 const app = express()
-app.use(cors())
+
+// ── CORS — allow Vercel + localhost ──────────────────────────────────────────
+const allowedOrigins = [
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "https://ai-study-agent-puce.vercel.app",
+  "https://ai-study-agent-24a31a04a5s-projects.vercel.app"
+]
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    // Also allow any vercel.app subdomain for future deployments
+    if (origin.endsWith(".vercel.app")) {
+      return callback(null, true)
+    }
+    return callback(new Error("Not allowed by CORS"))
+  },
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}))
+
 app.use(express.json())
 
 // ── In-memory conversation store (per user) ──────────────────────────────────
-// Key: user email or sub from Auth0 token
-// Value: array of { role, content } messages
 const conversations = {}
 
 const SYSTEM_PROMPT = `You are an expert AI Study Assistant. You help students understand complex academic topics clearly and concisely. 
@@ -17,7 +40,7 @@ You explain concepts step-by-step, use simple analogies, and give examples when 
 You cover subjects like Mathematics, Physics, Computer Science, Operating Systems, Algorithms, Machine Learning, and more.
 Keep responses focused, educational, and encouraging. If you don't know something, say so honestly.`
 
-// ── Helper: decode JWT payload (no verification — just to extract user id) ───
+// ── Helper: decode JWT payload ───────────────────────────────────────────────
 function getUserIdFromToken(authHeader) {
   try {
     if (!authHeader || !authHeader.startsWith("Bearer ")) return "anonymous"
@@ -34,7 +57,7 @@ app.get("/", (req, res) => {
   res.json({ status: "AI Study Agent server is running ✅" })
 })
 
-// ── Clear chat history for a user ────────────────────────────────────────────
+// ── Clear chat history ────────────────────────────────────────────────────────
 app.post("/clear", (req, res) => {
   const userId = getUserIdFromToken(req.headers.authorization)
   conversations[userId] = []
@@ -49,27 +72,23 @@ app.post("/chat", async (req, res) => {
     return res.status(400).json({ error: "Message is required" })
   }
 
-  // Get user id from token for memory
   const userId = getUserIdFromToken(req.headers.authorization)
 
-  // Initialize conversation history for this user
   if (!conversations[userId]) {
     conversations[userId] = []
   }
 
-  // Add user message to history
   conversations[userId].push({
     role: "user",
     content: message.trim()
   })
 
-  // Keep last 20 messages to avoid token overflow (10 exchanges)
+  // Keep last 20 messages
   if (conversations[userId].length > 20) {
     conversations[userId] = conversations[userId].slice(-20)
   }
 
   try {
-    // ── Call Groq API (Llama 3.3 70B — free tier) ──────────────────────────
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -86,13 +105,12 @@ app.post("/chat", async (req, res) => {
           "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
-        timeout: 30000 // 30 second timeout
+        timeout: 30000
       }
     )
 
     const reply = response.data.choices[0].message.content
 
-    // Save assistant reply to history
     conversations[userId].push({
       role: "assistant",
       content: reply
@@ -106,13 +124,10 @@ app.post("/chat", async (req, res) => {
 
   } catch (error) {
 
-    // Remove the user message from history if AI failed
     conversations[userId].pop()
 
-    // Handle specific Groq errors
     if (error.response) {
       const status = error.response.status
-      const errData = error.response.data
 
       if (status === 429) {
         return res.status(429).json({
@@ -123,21 +138,20 @@ app.post("/chat", async (req, res) => {
 
       if (status === 401) {
         return res.status(401).json({
-          reply: "❌ Invalid API key. Please check your GROQ_API_KEY in .env file.",
+          reply: "❌ Invalid API key. Please check your GROQ_API_KEY in Render environment variables.",
           error: "invalid_key"
         })
       }
 
-      console.error("Groq API error:", status, errData)
       return res.status(500).json({
-        reply: "❌ AI service error. Please try again in a moment.",
+        reply: "❌ AI service error. Please try again.",
         error: "api_error"
       })
     }
 
     if (error.code === "ECONNABORTED") {
       return res.status(504).json({
-        reply: "⏱️ Request timed out. The AI is busy — please try again.",
+        reply: "⏱️ Request timed out. Please try again.",
         error: "timeout"
       })
     }
@@ -150,8 +164,19 @@ app.post("/chat", async (req, res) => {
   }
 })
 
+// ── Keep alive (prevents Render free tier sleep) ──────────────────────────────
+const https = require("https")
+setInterval(() => {
+  https.get("https://ai-study-agent-hmok.onrender.com", (res) => {
+    console.log("Keep-alive ping ✓", res.statusCode)
+  }).on("error", () => {
+    console.log("Keep-alive ping failed")
+  })
+}, 14 * 60 * 1000)
+
 app.listen(3000, () => {
   console.log("✅ AI Study Agent server running on http://localhost:3000")
   console.log("🤖 Model: llama-3.3-70b-versatile (Groq)")
   console.log("🧠 Multi-turn memory: enabled")
+  console.log("🌐 CORS: enabled for Vercel domains")
 })
