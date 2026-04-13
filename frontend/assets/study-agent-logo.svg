@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Study Agent Logo</title>
+  <desc id="desc">Chat bubble icon with smiling bot face and sparkle accents.</desc>
+  <defs>
+    <linearGradient id="gMain" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#22d3a5"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="gFace" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#10233d"/>
+      <stop offset="1" stop-color="#061327"/>
+    </linearGradient>
+    <linearGradient id="gEyes" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#31e9be"/>
+      <stop offset="1" stop-color="#3ae6a0"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M64 36h104c8 0 14 6 14 14s-6 14-14 14H64c-13.2 0-24 10.8-24 24v80c0 13.2 10.8 24 24 24h16c7.7 0 14 6.3 14 14v18.2l28.5-25.3c2.5-2.2 5.7-3.4 9-3.4h47.5c13.2 0 24-10.8 24-24v-60c0-8 6-14 14-14s14 6 14 14v60c0 28.7-23.3 52-52 52h-42.2l-40.6 36.1c-4.1 3.6-10 4.5-14.9 2.2-4.9-2.2-8.1-7.1-8.1-12.5V220H64c-28.7 0-52-23.3-52-52V88c0-28.7 23.3-52 52-52z" fill="url(#gMain)"/>
+
+  <rect x="56" y="90" width="144" height="94" rx="30" fill="url(#gFace)"/>
+
+  <ellipse cx="96" cy="136" rx="12" ry="14" fill="url(#gEyes)"/>
+  <ellipse cx="160" cy="136" rx="12" ry="14" fill="url(#gEyes)"/>
+
+  <path d="M120.8 159.8c5.4 7.1 15.1 8.4 22.1 2.9 1.1-.8 2-1.8 2.9-2.9" fill="none" stroke="url(#gEyes)" stroke-width="8" stroke-linecap="round"/>
+
+  <path d="M206 26l4 9 9 4-9 4-4 9-4-9-9-4 9-4z" fill="#22d3a5"/>
+  <path d="M226 54l2.5 5.5 5.5 2.5-5.5 2.5-2.5 5.5-2.5-5.5-5.5-2.5 5.5-2.5z" fill="#3b82f6"/>
+</svg>
