@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Study Dashboard</h1>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <span class="theme-icon">🌙</span>
+      </button>
+    </header>
+
+    <main class="dashboard">
+      <section class="card timer-card">
+        <div class="card-header">
+          <h2>Pomodoro Timer</h2>
+          <span class="timer-mode" id="timerMode">Study Time</span>
+        </div>
+
+        <div class="timer-display">
+          <svg class="timer-circle" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="90" class="timer-circle-bg"></circle>
+            <circle cx="100" cy="100" r="90" class="timer-circle-progress" id="timerCircle"></circle>
+          </svg>
+          <div class="timer-text">
+            <div class="time-display" id="timeDisplay">25:00</div>
+            <div class="time-label">minutes</div>
+          </div>
+        </div>
+
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="startBtn">Start</button>
+          <button class="btn btn-secondary" id="pauseBtn" disabled>Pause</button>
+          <button class="btn btn-outline" id="resetBtn">Reset</button>
+        </div>
+
+        <div class="session-info">
+          <p>Sessions completed today: <strong id="sessionsToday">0</strong></p>
+        </div>
+      </section>
+
+      <section class="card rewards-card">
+        <div class="card-header">
+          <h2>Rewards</h2>
+        </div>
+
+        <div class="reward-display">
+          <div class="points-showcase">
+            <div class="points-circle">
+              <span class="points-value" id="pointsValue">0</span>
+              <span class="points-label">Points</span>
+            </div>
+          </div>
+          <div class="reward-info">
+            <p class="motivational" id="motivationalMessage">Start a session to earn points.</p>
+          </div>
+        </div>
+
+        <div class="streak-container">
+          <h3>Consistency Streak</h3>
+          <div class="streak-display">
+            <span class="streak-number" id="streakNumber">0</span>
+            <span class="streak-label">days</span>
+          </div>
+        </div>
+
+        <div class="points-breakdown">
+          <p><span class="point-label">Current session points:</span> <span class="point-value" id="pointsPerSessionValue">25 pts</span></p>
+          <p><span class="point-label">Consistency bonus:</span> <span class="point-value" id="streakBonusValue">+0%</span></p>
+        </div>
+      </section>
+
+      <section class="card badges-card">
+        <div class="card-header">
+          <h2>Achievements</h2>
+        </div>
+
+        <div class="badges-grid">
+          <div class="badge" id="badge1">
+            <div class="badge-icon">🥉</div>
+            <div class="badge-name">Starter</div>
+            <div class="badge-info">100 pts</div>
+            <div class="badge-status" id="badgeStatus1">Locked</div>
+          </div>
+
+          <div class="badge" id="badge2">
+            <div class="badge-icon">🥈</div>
+            <div class="badge-name">Scholar</div>
+            <div class="badge-info">500 pts</div>
+            <div class="badge-status" id="badgeStatus2">Locked</div>
+          </div>
+
+          <div class="badge" id="badge3">
+            <div class="badge-icon">🥇</div>
+            <div class="badge-name">Master</div>
+            <div class="badge-info">1000 pts</div>
+            <div class="badge-status" id="badgeStatus3">Locked</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card stats-card">
+        <div class="card-header">
+          <h2>Statistics</h2>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-content">
+              <div class="stat-value" id="totalMinutes">0</div>
+              <div class="stat-label">Minutes Studied</div>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon">🏆</div>
+            <div class="stat-content">
+              <div class="stat-value" id="badgesUnlocked">0</div>
+              <div class="stat-label">Badges Unlocked</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Consistency compounds into mastery.</p>
+      <button class="btn btn-outline" id="resetAllBtn">Reset All Data</button>
+    </footer>
+  </div>
+
+  <div class="notification" id="notification">
+    <span id="notificationText"></span>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

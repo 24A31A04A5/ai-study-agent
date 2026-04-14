@@ -130,6 +130,68 @@ function closeMobileDrawer() {
   document.body.classList.remove("drawer-open");
 }
 
+function setViewMode(mode) {
+  const isDashboard = mode === "dashboard";
+  const chatBtn = getEl("chatViewBtn");
+  const dashboardBtn = getEl("dashboardViewBtn");
+
+  document.body.classList.toggle("dashboard-active", isDashboard);
+
+  if (chatBtn) {
+    chatBtn.classList.toggle("active", !isDashboard);
+    chatBtn.setAttribute("aria-pressed", String(!isDashboard));
+  }
+
+  if (dashboardBtn) {
+    dashboardBtn.classList.toggle("active", isDashboard);
+    dashboardBtn.setAttribute("aria-pressed", String(isDashboard));
+  }
+
+  closeMobileDrawer();
+}
+
+function showChatView() {
+  setViewMode("chat");
+}
+
+function showDashboardView() {
+  setViewMode("dashboard");
+}
+
+function sendDashboardCommand(payload) {
+  const frame = getEl("dashboardFrame");
+  const targetWindow = frame?.contentWindow;
+  if (!targetWindow) {
+    return false;
+  }
+
+  targetWindow.postMessage(
+    Object.assign({ source: "ai-study-agent" }, payload),
+    "*"
+  );
+  return true;
+}
+
+function parseTimerMinutesCommand(message) {
+  const patterns = [
+    /(?:set|update|change)\s+(?:the\s+)?(?:study\s+)?timer\s+(?:to|for)\s*(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b/i,
+    /(?:set|update|change)\s*(\d{1,3})\s*(?:m|min|mins|minute|minutes)\s*(?:study\s*)?timer\b/i,
+    /(?:start|begin)\s*(?:a\s*)?(\d{1,3})\s*(?:m|min|mins|minute|minutes)\s*(?:study\s*)?(?:timer|session)\b/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) {
+      const minutes = Number(match[1]);
+      if (Number.isFinite(minutes) && minutes >= 1 && minutes <= 180) {
+        return minutes;
+      }
+    }
+  }
+
+  return null;
+}
+
 function toggleSidebarMode() {
   if (isDesktop()) {
     document.body.classList.toggle("sidebar-collapsed");
@@ -238,6 +300,9 @@ function renderHistoryList() {
   const fragment = document.createDocumentFragment();
   visibleItems.forEach((conv) => {
     const li = document.createElement("li");
+    const entry = document.createElement("div");
+    entry.className = "history-entry";
+
     const btn = document.createElement("button");
     btn.className = "history-item" + (conv.id === state.activeConversationId ? " active" : "");
     btn.type = "button";
@@ -257,11 +322,46 @@ function renderHistoryList() {
       closeMobileDrawer();
     });
 
-    li.appendChild(btn);
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "history-delete-btn";
+    deleteBtn.type = "button";
+    deleteBtn.setAttribute("aria-label", "Delete chat");
+    deleteBtn.title = "Delete chat";
+    deleteBtn.textContent = "×";
+    deleteBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteConversationById(conv.id);
+    });
+
+    entry.appendChild(btn);
+    entry.appendChild(deleteBtn);
+    li.appendChild(entry);
     fragment.appendChild(li);
   });
 
   historyList.appendChild(fragment);
+}
+
+function deleteConversationById(conversationId) {
+  const index = state.conversations.findIndex((conversation) => conversation.id === conversationId);
+  if (index === -1) {
+    return;
+  }
+
+  state.conversations.splice(index, 1);
+
+  if (state.conversations.length === 0) {
+    const freshConversation = createConversation();
+    state.conversations = [freshConversation];
+    state.activeConversationId = freshConversation.id;
+  } else if (state.activeConversationId === conversationId) {
+    const sorted = getSortedConversations();
+    state.activeConversationId = sorted[0].id;
+  }
+
+  saveState();
+  renderHistoryList();
+  renderActiveConversation();
 }
 
 function renderMessageRow(role, content) {
@@ -574,6 +674,31 @@ async function sendMessage() {
   appendMessageToDOM("user", message);
   renderHistoryList();
 
+  const timerMinutes = parseTimerMinutesCommand(message);
+  if (timerMinutes) {
+    const commandSent = sendDashboardCommand({
+      type: "dashboard:set-timer",
+      minutes: timerMinutes,
+      autoStart: true
+    });
+
+    const timerReply = commandSent
+      ? `Done. I set the dashboard study timer to ${timerMinutes} minutes and started it.`
+      : `I understood your timer command (${timerMinutes} minutes), but the dashboard is not available right now.`;
+
+    appendMessageToState("assistant", timerReply);
+    appendMessageToDOM("bot", timerReply);
+    renderHistoryList();
+    showDashboardView();
+
+    textarea.value = "";
+    autoResizeTextarea();
+    isSending = false;
+    setComposerBusy(false);
+    textarea.focus();
+    return;
+  }
+
   textarea.value = "";
   autoResizeTextarea();
 
@@ -633,6 +758,8 @@ function bindEvents() {
   getEl("menuBtn")?.addEventListener("click", toggleSidebarMode);
   getEl("collapseBtn")?.addEventListener("click", toggleSidebarMode);
   getEl("drawerBackdrop")?.addEventListener("click", closeMobileDrawer);
+  getEl("chatViewBtn")?.addEventListener("click", showChatView);
+  getEl("dashboardViewBtn")?.addEventListener("click", showDashboardView);
 
   getEl("newChatBtn")?.addEventListener("click", handleNewChat);
   getEl("clearBtn")?.addEventListener("click", handleClearActiveConversation);
@@ -684,6 +811,7 @@ function bindEvents() {
 async function initApp() {
   loadState();
   bindEvents();
+  setViewMode("chat");
   renderHistoryList();
   renderActiveConversation();
   autoResizeTextarea();
