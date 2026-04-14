@@ -3,6 +3,10 @@ let isSending = false;
 
 const STORAGE_KEY = "ai-study-agent-conversations-v1";
 const HISTORY_BATCH_SIZE = 20;
+const DASHBOARD_STATE_KEY = "studyDashboardState";
+const DASHBOARD_EVENT_KEY = "studyDashboardLastEvent";
+
+let appNotificationTimeoutId = null;
 
 const state = {
   conversations: [],
@@ -26,6 +30,89 @@ const REDIRECT_URI = window.location.protocol === "file:"
 
 function getEl(id) {
   return document.getElementById(id);
+}
+
+function showAppNotification(message, duration = 3500) {
+  const box = getEl("appNotification");
+  const text = getEl("appNotificationText");
+  if (!box || !text) {
+    return;
+  }
+
+  text.textContent = message;
+  box.classList.add("show");
+
+  if (appNotificationTimeoutId) {
+    clearTimeout(appNotificationTimeoutId);
+  }
+
+  appNotificationTimeoutId = setTimeout(() => {
+    box.classList.remove("show");
+  }, duration);
+}
+
+function readDashboardStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(DASHBOARD_STATE_KEY);
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function updateSidebarPoints(pointsOverride) {
+  const pointsElement = getEl("sidebarPoints");
+  if (!pointsElement) {
+    return;
+  }
+
+  let points = Number(pointsOverride);
+  if (!Number.isFinite(points)) {
+    const dashboardState = readDashboardStateFromStorage();
+    points = Number(dashboardState?.totalPoints || 0);
+  }
+
+  pointsElement.textContent = `Points: ${Math.max(0, Math.floor(points))}`;
+}
+
+function handleDashboardMessageEvent(event) {
+  const payload = event.data || {};
+  if (payload.source !== "ai-study-dashboard") {
+    return;
+  }
+
+  if (payload.type === "dashboard:state-updated") {
+    updateSidebarPoints(payload.totalPoints);
+    return;
+  }
+
+  if (payload.type === "dashboard:session-complete") {
+    const earnedPoints = Number(payload.earnedPoints || 0);
+    updateSidebarPoints(payload.totalPoints);
+    showAppNotification(`Study timer complete. +${Math.max(0, Math.floor(earnedPoints))} points earned.`);
+  }
+}
+
+function handleStorageEvent(event) {
+  if (event.key === DASHBOARD_STATE_KEY) {
+    updateSidebarPoints();
+    return;
+  }
+
+  if (event.key === DASHBOARD_EVENT_KEY && event.newValue) {
+    try {
+      const data = JSON.parse(event.newValue);
+      if (data?.type === "session-complete") {
+        const earnedPoints = Number(data.earnedPoints || 0);
+        showAppNotification(`Study timer complete. +${Math.max(0, Math.floor(earnedPoints))} points earned.`);
+      }
+    } catch (_error) {
+      // Ignore malformed storage events
+    }
+  }
 }
 
 function escapeHtml(value) {
@@ -147,6 +234,7 @@ function setViewMode(mode) {
     dashboardBtn.setAttribute("aria-pressed", String(isDashboard));
   }
 
+  updateSidebarPoints();
   closeMobileDrawer();
 }
 
@@ -638,6 +726,8 @@ async function updateUI() {
       logoutBtn.style.display = "none";
     }
   }
+
+  updateSidebarPoints();
 }
 
 async function login() {
@@ -805,6 +895,9 @@ function bindEvents() {
     }
   });
 
+  window.addEventListener("message", handleDashboardMessageEvent);
+  window.addEventListener("storage", handleStorageEvent);
+
   bindSuggestionChips();
 }
 
@@ -812,6 +905,7 @@ async function initApp() {
   loadState();
   bindEvents();
   setViewMode("chat");
+  updateSidebarPoints();
   renderHistoryList();
   renderActiveConversation();
   autoResizeTextarea();

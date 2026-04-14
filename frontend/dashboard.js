@@ -19,6 +19,8 @@ const CONFIG = {
     }
 };
 
+const DASHBOARD_EVENT_KEY = 'studyDashboardLastEvent';
+
 // ============================================
 // State Management
 // ============================================
@@ -213,6 +215,33 @@ function getMotivationalMessage() {
     return messages[6];
 }
 
+function notifyParent(type, payload = {}) {
+    window.parent?.postMessage(
+        {
+            source: 'ai-study-dashboard',
+            type,
+            ...payload
+        },
+        '*'
+    );
+}
+
+function notifyCrossTabEvent(type, payload = {}) {
+    try {
+        localStorage.setItem(
+            DASHBOARD_EVENT_KEY,
+            JSON.stringify({
+                source: 'ai-study-dashboard',
+                type,
+                timestamp: Date.now(),
+                ...payload
+            })
+        );
+    } catch (_error) {
+        // Ignore storage failures
+    }
+}
+
 function getConsistencyMultiplier() {
     return 1 + Math.min(state.streak, 10) * 0.1;
 }
@@ -300,6 +329,16 @@ function completeSession() {
         // Show notification and sound
         showNotification(`🎉 Study session completed! You earned ${earnedPoints} points!`);
         playSound();
+        notifyParent('dashboard:session-complete', {
+            earnedPoints,
+            totalPoints: state.totalPoints,
+            streak: state.streak
+        });
+        notifyCrossTabEvent('session-complete', {
+            earnedPoints,
+            totalPoints: state.totalPoints,
+            streak: state.streak
+        });
 
         // Check and unlock badges
         checkBadgeUnlocks();
@@ -544,6 +583,12 @@ function updateUI() {
     // Update motivational message
     updateMotivationalMessage();
     updatePointsBreakdown();
+    notifyParent('dashboard:state-updated', {
+        totalPoints: state.totalPoints,
+        streak: state.streak,
+        sessionsCompleted: state.sessionsCompleted,
+        totalMinutesStudied: state.totalMinutesStudied
+    });
 }
 
 // ============================================

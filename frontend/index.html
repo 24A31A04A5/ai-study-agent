@@ -252,6 +252,7 @@
       display: grid;
       gap: 10px;
       background: #efeff1;
+      margin-top: auto;
     }
 
     .user-status {
@@ -260,6 +261,12 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .sidebar-points {
+      font-weight: 600;
+      color: #374151;
     }
 
     .auth-row {
@@ -272,6 +279,7 @@
       padding: 8px 10px;
       font-size: 13px;
       font-weight: 600;
+      text-align: center;
     }
 
     .clear-chat-btn {
@@ -638,8 +646,51 @@
       text-align: center;
     }
 
+    .app-notification {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 1200;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px) scale(0.98);
+      transition: opacity var(--transition-mid), transform var(--transition-mid);
+      max-width: min(88vw, 360px);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .app-notification.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
     .hide-label {
       display: none;
+    }
+
+    @media (max-width: 900px) {
+      .brand-center {
+        position: static;
+        transform: none;
+        left: auto;
+        margin-right: auto;
+        min-width: 0;
+        max-width: min(58vw, 320px);
+      }
+
+      .brand-title-text {
+        max-width: 100%;
+      }
+
+      .topbar-actions {
+        margin-left: 0;
+      }
     }
 
     @media (min-width: 768px) {
@@ -723,7 +774,7 @@
       }
 
       .auth-row {
-        flex-direction: row;
+        flex-direction: column;
       }
 
       body.sidebar-collapsed .sidebar {
@@ -732,6 +783,15 @@
 
       body.sidebar-collapsed .history-panel {
         display: none;
+      }
+
+      body.sidebar-collapsed .sidebar-footer,
+      body.sidebar-collapsed .new-chat-btn {
+        display: none;
+      }
+
+      body.sidebar-collapsed .sidebar-header {
+        justify-content: center;
       }
 
       body.sidebar-collapsed .chat-main {
@@ -812,6 +872,7 @@
 
       <div class="sidebar-footer">
         <div id="user" class="user-status">Not signed in</div>
+        <div id="sidebarPoints" class="user-status sidebar-points">Points: 0</div>
         <div class="auth-row">
           <button class="text-btn" id="loginBtn" type="button">Sign in</button>
           <button class="text-btn" id="logoutBtn" type="button" style="display: none;">Sign out</button>
@@ -865,6 +926,10 @@
         <p class="composer-hint">Enter to send, Shift+Enter for a new line.</p>
       </footer>
     </main>
+  </div>
+
+  <div id="appNotification" class="app-notification" role="status" aria-live="polite">
+    <span id="appNotificationText"></span>
   </div>
 
   <script src="auth0.js"></script>
